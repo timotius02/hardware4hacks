@@ -1,3 +1,4 @@
+import { ItemState } from "@prisma/client";
 import { z } from "zod";
 
 import {
@@ -156,6 +157,7 @@ export const hackathonRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           itemId: input.itemId,
           quantity: input.quantity,
+          state: ItemState.IN_CART,
         },
       });
     }),
