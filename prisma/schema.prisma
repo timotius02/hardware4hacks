@@ -118,6 +118,13 @@ model ItemsInCarts {
   itemId      String
   addedOn     DateTime @default(now())
   quantity    Int
+  state       ItemState
 
   @@id([userId, itemId])
+}
+
+enum ItemState {
+  IN_CART
+  WAITING_FOR_APPROVAL
+  CHECKED_OUT
 }
