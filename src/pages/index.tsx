@@ -1,26 +1,29 @@
-import { type NextPage } from "next";
+import { type Hackathon } from "@prisma/client";
+import { type GetServerSideProps } from "next";
+import { getServerSession } from "next-auth";
 import Head from "next/head";
-import { type hackathon } from "~/components/hackathon-card";
 import Hackathons from "~/components/hackathons";
-import { Header } from "~/components/header";
 import Hero from "~/components/hero";
+import { authOptions } from "~/server/auth";
+import { prisma } from "~/server/db";
 
-const hackathons: hackathon[] = [
-  {
-    name: "HackNYU",
-    url: "https://www.hacknyu.org/",
-    banner:
-      "https://s3.amazonaws.com/assets.mlh.io/events/splashes/000/212/494/thumb/Event_Backsplash.png?1673562402",
-    logo: "https://s3.amazonaws.com/assets.mlh.io/events/logos/000/212/494/thumb/Event_Logo.png",
-    code: "hacknyu2023",
-    date: "Feb 18th - 19th",
-    city: "Brooklyn",
-    state: "NY",
-  },
-];
-const Home: NextPage = () => {
-  // const hello = trpc.example.hello.useQuery({ text: "from tRPC" });
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getServerSession(context.req, context.res, authOptions);
 
+  const hackathons = await prisma.hackathon.findMany();
+  return {
+    props: {
+      session,
+      hackathons,
+    },
+  };
+};
+
+interface HomeProps {
+  hackathons: Hackathon[];
+}
+export default function Home(props: HomeProps) {
+  const { hackathons } = props;
   return (
     <div className="mx-auto flex flex-col">
       <Head>
@@ -28,7 +31,6 @@ const Home: NextPage = () => {
         <meta name="description" content="Platform " />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Header />
       <main>
         <Hero />
         <div>
@@ -37,6 +39,4 @@ const Home: NextPage = () => {
       </main>
     </div>
   );
-};
-
-export default Home;
+}

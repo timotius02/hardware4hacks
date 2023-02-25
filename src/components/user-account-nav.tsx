@@ -17,10 +17,10 @@ interface UserAccountNavProps extends React.HTMLAttributes<HTMLDivElement> {
 export function UserAccountNav({ user }: UserAccountNavProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="focus:ring-brand-900 flex items-center gap-2 overflow-hidden focus:ring-2 focus:ring-offset-2 focus-visible:outline-none">
+      <DropdownMenuTrigger className="flex items-center gap-2 overflow-hidden focus:ring-2 focus:ring-brand-900 focus:ring-offset-2 focus-visible:outline-none">
         <Avatar>
           {user.image && <AvatarImage src={user.image} alt="@shadcn" />}
-          <AvatarFallback>CN</AvatarFallback>
+          <AvatarFallback delayMs={600}>CN</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="mt-2 md:w-[240px]" align="end">

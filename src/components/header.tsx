@@ -1,6 +1,7 @@
 import { Archive } from "lucide-react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import { cn } from "~/lib/utils";
 
 import { UserAccountNav } from "./user-account-nav";
 
@@ -19,17 +20,28 @@ export function Header() {
           </span>
         </Link>
 
-        {user ? (
-          <UserAccountNav
-            user={{
-              name: user?.name,
-              image: user?.image,
-              email: user?.email,
-            }}
-          />
-        ) : (
-          <button onClick={() => void signIn()}>Signin</button>
-        )}
+        <div className="flex gap-6 md:gap-10">
+          <Link
+            href="/checkout"
+            className={cn(
+              "flex items-center text-lg font-semibold text-slate-600 sm:text-sm"
+            )}
+          >
+            Checkout
+          </Link>
+
+          {user ? (
+            <UserAccountNav
+              user={{
+                name: user?.name,
+                image: user?.image,
+                email: user?.email,
+              }}
+            />
+          ) : (
+            <button onClick={() => void signIn()}>Signin</button>
+          )}
+        </div>
       </div>
     </header>
   );
