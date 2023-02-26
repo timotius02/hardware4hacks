@@ -14,6 +14,7 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const defaults = {
   name: "New Item",
@@ -22,6 +23,7 @@ const defaults = {
   date: "",
   startTime: "",
   endTime: "",
+  timeInterval: 60,
 };
 
 export default function NewReservableButton() {
@@ -31,6 +33,7 @@ export default function NewReservableButton() {
   const [date, setDate] = useState(defaults.date);
   const [startTime, setStartTime] = useState(defaults.startTime);
   const [endTime, setEndTime] = useState(defaults.endTime);
+  const [timeInterval, setTimeInterval] = useState(defaults.timeInterval);
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { eventId } = router.query;
@@ -86,6 +89,7 @@ export default function NewReservableButton() {
       date,
       startTime,
       endTime,
+      timeInterval,
     });
     console.log(startTime, endTime);
     setOpen(false);
@@ -104,6 +108,7 @@ export default function NewReservableButton() {
     startTime,
     endTime,
     addReservable,
+    timeInterval,
   ]);
 
   return (
@@ -199,6 +204,34 @@ export default function NewReservableButton() {
               onChange={(event) => setEndTime(event.target.value)}
               className="col-span-3"
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="timeInterval" className="text-right leading-normal">
+              Interval
+            </Label>
+            <RadioGroup
+              defaultValue="60"
+              onValueChange={(value) => setTimeInterval(+value)}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="15" id="r1" />
+                <Label htmlFor="r1" className="whitespace-nowrap">
+                  15 min
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="30" id="r2" />
+                <Label htmlFor="r2" className="whitespace-nowrap">
+                  30 min
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="60" id="r3" />
+                <Label htmlFor="r3" className="whitespace-nowrap">
+                  1 hour
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
         </div>
         <DialogFooter>

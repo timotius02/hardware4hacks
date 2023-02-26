@@ -179,7 +179,7 @@ export default function EditItemModal(props: EditItemModalProps) {
             Remove
           </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Add
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>

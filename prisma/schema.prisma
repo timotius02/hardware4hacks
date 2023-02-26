@@ -59,6 +59,7 @@ model User {
   role          Role      @default(USER)
 
   itemCart      ItemsInCarts[]
+  transations   Reservation[]
 }
 
 enum Role {
@@ -98,18 +99,20 @@ model Item {
   hackathonId String
 
   userCarts   ItemsInCarts[]
+  transations Reservation[]
 }
 
 model Reservable {
-  id          String    @id @default(cuid())
-  name        String
-  image       String
-  imageAlt    String
-  date        String
-  startTime   String
-  endTime     String
-  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
-  hackathonId String
+  id            String    @id @default(cuid())
+  name          String
+  image         String
+  imageAlt      String
+  date          String
+  startTime     String
+  endTime       String
+  timeInterval  Int       // 15, 30 or 60 minutes
+  hackathon     Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  hackathonId   String
 }
 
 model ItemsInCarts {
@@ -119,13 +122,16 @@ model ItemsInCarts {
   itemId      String
   addedOn     DateTime @default(now())
   quantity    Int
-  state       ItemState
 
   @@id([userId, itemId])
 }
 
-enum ItemState {
-  IN_CART
-  WAITING_FOR_APPROVAL
-  CHECKED_OUT
+model Reservation {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId      String
+  quantity    Int
+  isApproved  Boolean   @default(false)
 }

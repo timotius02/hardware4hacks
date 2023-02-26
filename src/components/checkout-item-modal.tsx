@@ -25,28 +25,73 @@ export default function CheckoutItemModal(props: CheckoutItemModalProps) {
   const { item } = props;
   const router = useRouter();
   const utils = api.useContext();
-  const addItemToCheckout = api.hackathon.addItemToCart.useMutation({
+  const addItemToCart = api.hackathon.addItemToCart.useMutation({
+    // Optimistic Update
+    onMutate: async ({ itemId, quantity }) => {
+      await utils.hackathon.getItemsInCart.cancel();
+      const previousEntries = utils.hackathon.getItemsInCart.getData();
+
+      const newEntry = {
+        itemId,
+        userId: "test",
+        quantity,
+        addedOn: new Date(),
+        item,
+      };
+
+      let newEntries: typeof previousEntries;
+
+      if (!previousEntries) {
+        newEntries = [newEntry];
+      } else {
+        const index = previousEntries?.findIndex(
+          (entry) => entry.itemId === itemId
+        );
+
+        if (index === undefined) {
+          newEntries = previousEntries
+            ? [...previousEntries, newEntry]
+            : [newEntry];
+        } else {
+          newEntries = previousEntries.map((entry) =>
+            entry.itemId === itemId ? newEntry : entry
+          );
+        }
+      }
+      utils.hackathon.getItemsInCart.setData(undefined, newEntries);
+      return { previousEntries };
+    },
+    // On error, we roll back
+    onError: (err, newItem, context) => {
+      if (context) {
+        utils.hackathon.getItemsInCart.setData(
+          undefined,
+          context.previousEntries
+        );
+      }
+    },
+    // Always refetch after error or success:
     onSettled: async () => {
-      await utils.hackathon.getAllItemsInCart.invalidate();
+      await utils.hackathon.getItemsInCart.invalidate();
     },
   });
 
   const handleCheckout = useCallback(async () => {
-    await addItemToCheckout.mutateAsync({
+    addItemToCart.mutate({
       itemId: item.id,
       quantity: checkoutCount,
     });
 
     await router.push("/checkout");
-  }, [addItemToCheckout, checkoutCount, item.id, router]);
+  }, [addItemToCart, checkoutCount, item.id, router]);
 
   const addToCart = useCallback(() => {
     setOpen(false);
-    addItemToCheckout.mutate({
+    addItemToCart.mutate({
       itemId: item.id,
       quantity: checkoutCount,
     });
-  }, [addItemToCheckout, checkoutCount, item.id]);
+  }, [addItemToCart, checkoutCount, item.id]);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -79,6 +124,7 @@ export default function CheckoutItemModal(props: CheckoutItemModalProps) {
               type="number"
               name="count"
               max={item.count}
+              min={1}
               value={checkoutCount}
               onChange={(event) => setCheckoutCount(+event.target.value)}
               className="col-span-3"

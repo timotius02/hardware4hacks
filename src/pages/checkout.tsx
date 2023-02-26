@@ -1,31 +1,3 @@
-// const products = [
-//   {
-//     id: 1,
-//     name: "Throwback Hip Bag",
-//     href: "#",
-//     color: "Salmon",
-//     price: "$90.00",
-//     quantity: 1,
-//     imageSrc:
-//       "https://tailwindui.com/img/ecommerce-images/shopping-cart-page-04-product-01.jpg",
-//     imageAlt:
-//       "Salmon orange fabric pouch with match zipper, gray zipper pull, and adjustable hip belt.",
-//   },
-//   {
-//     id: 2,
-//     name: "Medium Stuff Satchel",
-//     href: "#",
-//     color: "Blue",
-//     price: "$32.00",
-//     quantity: 1,
-//     imageSrc:
-//       "https://tailwindui.com/img/ecommerce-images/shopping-cart-page-04-product-02.jpg",
-//     imageAlt:
-//       "Front of satchel with blue canvas body, black straps and handle, drawstring top, and front zipper pouch.",
-//   },
-//   // More products...
-// ];
-
 import { createProxySSGHelpers } from "@trpc/react-query/ssg";
 import { type GetServerSideProps } from "next";
 import { getServerSession } from "next-auth";
@@ -38,7 +10,8 @@ import { Button } from "~/components/ui/button";
 import { useCallback } from "react";
 import { type Item } from "@prisma/client";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useToast } from "~/components/hooks/use-toast";
+import { Spinner } from "~/components/ui/spinner";
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getServerSession(context.req, context.res, authOptions);
@@ -52,7 +25,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     transformer: superjson,
   });
 
-  await ssg.hackathon.getAllItemsInCart.prefetch();
+  await ssg.hackathon.getItemsInCart.prefetch();
 
   return {
     props: {
@@ -63,24 +36,26 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 export default function Checkout() {
-  const entries = api.hackathon.getAllItemsInCart.useQuery().data ?? [];
+  const itemsInCart = api.hackathon.getItemsInCart.useQuery();
+  const entries = itemsInCart.data ?? [];
   const utils = api.useContext();
+  const { toast } = useToast();
 
   const removeItem = api.hackathon.removeItemFromCart.useMutation({
     // Optimistic Update
     onMutate: async (id) => {
-      await utils.hackathon.getAllItemsInCart.cancel();
-      const previousEntries = utils.hackathon.getAllItemsInCart.getData();
+      await utils.hackathon.getItemsInCart.cancel();
+      const previousEntries = utils.hackathon.getItemsInCart.getData();
       const newEntries = previousEntries?.filter(
         (entry) => entry.item.id !== id
       );
-      utils.hackathon.getAllItemsInCart.setData(undefined, newEntries);
+      utils.hackathon.getItemsInCart.setData(undefined, newEntries);
       return { previousEntries };
     },
     // On error, we roll back
     onError: (err, newItem, context) => {
       if (context) {
-        utils.hackathon.getAllItemsInCart.setData(
+        utils.hackathon.getItemsInCart.setData(
           undefined,
           context.previousEntries
         );
@@ -88,13 +63,45 @@ export default function Checkout() {
     },
     // Always refetch after error or success:
     onSettled: async () => {
-      await utils.hackathon.getAllItemsInCart.invalidate();
+      await utils.hackathon.getItemsInCart.invalidate();
     },
   });
 
-  const handleRemove = useCallback((item: Item) => {
-    removeItem.mutate(item.id);
-  }, []);
+  const checkout = api.hackathon.checkoutItems.useMutation({
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        title: err.message,
+        description: "Please try again later",
+      });
+    },
+    onSettled: async () => {
+      toast({
+        description: "Check out success!",
+      });
+      await Promise.all([
+        utils.hackathon.getItemsInCart.invalidate(),
+        utils.hackathon.getAllItems.invalidate(),
+      ]);
+    },
+  });
+
+  const handleRemove = useCallback(
+    (item: Item) => {
+      removeItem.mutate(item.id);
+    },
+    [removeItem]
+  );
+
+  const handleCheckout = useCallback(() => {
+    if (itemsInCart.data) {
+      const items = itemsInCart.data.map((entry) => ({
+        itemId: entry.itemId,
+        quantity: entry.quantity,
+      }));
+      checkout.mutate(items);
+    }
+  }, [itemsInCart, checkout]);
 
   return (
     <div className="h-full bg-white">
@@ -160,8 +167,19 @@ export default function Checkout() {
 
         <div className="py-6 px-8 sm:px-12">
           <div className="mt-6 flex items-center justify-center">
-            <Button disabled={entries.length === 0} size="lg">
-              Checkout
+            <Button
+              disabled={entries.length === 0 || checkout.isLoading}
+              size="lg"
+              onClick={handleCheckout}
+            >
+              {checkout.isLoading ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  {"Loading"}
+                </>
+              ) : (
+                "Checkout"
+              )}
             </Button>
           </div>
           <div className="mt-6 flex justify-center text-center text-sm text-gray-500">

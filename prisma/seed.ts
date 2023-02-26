@@ -32,6 +32,7 @@ async function main() {
             date: "",
             startTime: "18:00",
             endTime: "22:00",
+            timeInterval: 60,
           },
         ],
       },

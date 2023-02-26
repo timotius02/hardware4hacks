@@ -1,5 +1,7 @@
+import { FileClock, LogOut } from "lucide-react";
 import { type User } from "next-auth";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -34,6 +36,14 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
             )}
           </div>
         </div>
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Link href="/history" className="flex w-full items-center">
+            <FileClock className="mr-2 h-4 w-4" />
+            History
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer"
@@ -44,6 +54,7 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
             });
           }}
         >
+          <LogOut className="mr-2 h-4 w-4" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

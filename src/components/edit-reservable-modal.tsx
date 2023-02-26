@@ -15,6 +15,7 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 interface EditItemModalProps {
   reservable: Reservable;
@@ -27,6 +28,7 @@ export default function EditReservableModal(props: EditItemModalProps) {
   const [date, setDate] = useState(reservable.date);
   const [startTime, setStartTime] = useState(reservable.startTime);
   const [endTime, setEndTime] = useState(reservable.endTime);
+  const [timeInterval, setTimeInterval] = useState(reservable.timeInterval);
   const [open, setOpen] = useState(false);
 
   const utils = api.useContext();
@@ -99,6 +101,7 @@ export default function EditReservableModal(props: EditItemModalProps) {
       date,
       startTime,
       endTime,
+      timeInterval,
     });
     setOpen(false);
   }, [
@@ -110,6 +113,7 @@ export default function EditReservableModal(props: EditItemModalProps) {
     startTime,
     endTime,
     editReservable,
+    timeInterval,
   ]);
 
   const handleRemove = useCallback(() => {
@@ -223,13 +227,41 @@ export default function EditReservableModal(props: EditItemModalProps) {
               className="col-span-3"
             />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="timeInterval" className="text-right leading-normal">
+              Interval
+            </Label>
+            <RadioGroup
+              defaultValue="60"
+              onValueChange={(value) => setTimeInterval(+value)}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="15" id="r1" />
+                <Label htmlFor="r1" className="whitespace-nowrap">
+                  15 min
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="30" id="r2" />
+                <Label htmlFor="r2" className="whitespace-nowrap">
+                  30 min
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="60" id="r3" />
+                <Label htmlFor="r3" className="whitespace-nowrap">
+                  1 hour
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="destructive" onClick={handleRemove}>
             Remove
           </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Add
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>
