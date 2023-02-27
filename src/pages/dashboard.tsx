@@ -1,7 +1,7 @@
 import AvailableTable from "~/components/available-table";
+import CheckedOutTable from "~/components/checked-out-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import WaitingForApprovalTable from "~/components/waiting-for-approval";
-import { api } from "~/utils/api";
+import WaitingForApprovalTable from "~/components/waiting-for-approval-table";
 
 export default function Dashboard() {
   return (
@@ -99,17 +99,19 @@ export default function Dashboard() {
       <Tabs defaultValue="all" className="mt-6">
         <TabsList>
           <TabsTrigger value="all">Available Items</TabsTrigger>
-          <TabsTrigger value="checkedOut">Checked out Items</TabsTrigger>
 
           <TabsTrigger value="waiting">Waiting for approval</TabsTrigger>
+          <TabsTrigger value="checkedOut">Checked out Items</TabsTrigger>
         </TabsList>
         <TabsContent value="all">
           <AvailableTable />
         </TabsContent>
-        <TabsContent value="checkedOut">checked Out</TabsContent>
 
         <TabsContent value="waiting">
           <WaitingForApprovalTable />
+        </TabsContent>
+        <TabsContent value="checkedOut">
+          <CheckedOutTable />
         </TabsContent>
       </Tabs>
 

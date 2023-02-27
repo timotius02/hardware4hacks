@@ -317,4 +317,25 @@ export const hackathonRouter = createTRPCRouter({
       },
     });
   }),
+
+  returnItem: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      const reservation = await ctx.prisma.reservation.delete({
+        where: {
+          id: input,
+        },
+      });
+
+      return ctx.prisma.item.update({
+        where: {
+          id: reservation.itemId,
+        },
+        data: {
+          count: {
+            increment: reservation.quantity,
+          },
+        },
+      });
+    }),
 });
