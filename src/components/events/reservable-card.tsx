@@ -1,4 +1,5 @@
 import { type Reservable } from "@prisma/client";
+import CheckoutReservableModal from "./checkout-reservable-modal";
 import EditReservableModal from "./edit-reservable-modal";
 
 interface ReservableCardProps {
@@ -19,8 +20,17 @@ export default function ReservableCard(props: ReservableCardProps) {
           className="h-full w-full object-cover object-center group-hover:opacity-75"
         />
       </div>
-      <h3 className="mt-4 text-sm text-gray-700">{reservable.name}</h3>
-      {/* <p className="mt-1 text-lg font-medium text-gray-900">{reservable.count}</p> */}
+      <div className="flex justify-between">
+        <div>
+          <h3 className="mt-4 text-sm text-gray-700">{reservable.name}</h3>
+          <p className="mt-1 text-lg font-medium text-gray-900">
+            {reservable.startTime} to {reservable.endTime}
+          </p>
+        </div>
+        <div className="flex items-center ">
+          <CheckoutReservableModal reservable={reservable} />
+        </div>
+      </div>
     </div>
   );
 }

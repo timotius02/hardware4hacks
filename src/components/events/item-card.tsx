@@ -1,9 +1,6 @@
 import { type Item } from "@prisma/client";
-import { Minus, Plus, ShoppingBag } from "lucide-react";
-import { useState } from "react";
 import CheckoutItemModal from "./checkout-item-modal";
 import EditItemModal from "./edit-item-modal";
-import { Button } from "./ui/button";
 
 interface ItemCardProps {
   item: Item;

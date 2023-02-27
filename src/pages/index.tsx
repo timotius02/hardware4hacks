@@ -2,8 +2,8 @@ import { type Hackathon } from "@prisma/client";
 import { type GetServerSideProps } from "next";
 import { getServerSession } from "next-auth";
 import Head from "next/head";
-import Hackathons from "~/components/hackathons";
-import Hero from "~/components/hero";
+import Hackathons from "~/components/home/hackathons";
+import Hero from "~/components/home/hero";
 import { authOptions } from "~/server/auth";
 import { prisma } from "~/server/db";
 

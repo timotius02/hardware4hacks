@@ -1,10 +1,34 @@
 import { MoreVertical } from "lucide-react";
 import { api } from "~/utils/api";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 export default function CheckedOutTable() {
   const entries = api.hackathon.getItemsCheckedOut.useQuery().data ?? [];
-  const returnItem = api.hackathon.returnItem.useMutation();
+  const utils = api.useContext();
+  const returnItem = api.hackathon.returnItem.useMutation({
+    onMutate: async (reservationId) => {
+      await utils.hackathon.getItemsCheckedOut.cancel();
+      const previousReservables = utils.hackathon.getItemsCheckedOut.getData();
+      const newReservations = previousReservables?.filter(
+        (reservation) => reservation.id !== reservationId
+      );
+      utils.hackathon.getItemsCheckedOut.setData(undefined, newReservations);
+      return { previousReservables };
+    },
+    // On error, we roll back
+    onError: (err, newItem, context) => {
+      if (context) {
+        utils.hackathon.getItemsCheckedOut.setData(
+          undefined,
+          context.previousReservables
+        );
+      }
+    },
+    // Always refetch after error or success:
+    onSettled: async () => {
+      await utils.hackathon.getItemsCheckedOut.invalidate();
+    },
+  });
 
   const handleReturn = (reservationId: string) => {
     returnItem.mutate(reservationId);

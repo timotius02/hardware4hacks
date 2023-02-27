@@ -1,7 +1,7 @@
-import AvailableTable from "~/components/available-table";
-import CheckedOutTable from "~/components/checked-out-table";
+import AvailableTable from "~/components/dashboard/available-table";
+import CheckedOutTable from "~/components/dashboard/checked-out-table";
+import WaitingForApprovalTable from "~/components/dashboard/waiting-for-approval-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import WaitingForApprovalTable from "~/components/waiting-for-approval-table";
 
 export default function Dashboard() {
   return (

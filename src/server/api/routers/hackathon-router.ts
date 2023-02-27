@@ -1,4 +1,5 @@
 import { z } from "zod";
+import generateTimeSlots from "~/lib/generate-time-slots";
 
 import {
   createTRPCRouter,
@@ -12,7 +13,15 @@ export const hackathonRouter = createTRPCRouter({
   }),
 
   getAllItemsGlobal: publicProcedure.query(({ ctx }) => {
-    return ctx.prisma.item.findMany();
+    return ctx.prisma.item.findMany({
+      include: {
+        _count: {
+          select: {
+            reservations: true,
+          },
+        },
+      },
+    });
   }),
 
   getAllItems: publicProcedure.input(z.string()).query(({ ctx, input }) => {
@@ -337,5 +346,39 @@ export const hackathonRouter = createTRPCRouter({
           },
         },
       });
+    }),
+
+  getTimeSlots: publicProcedure
+    .input(z.string())
+    .query(async ({ ctx, input }) => {
+      const reservable = await ctx.prisma.reservable.findUniqueOrThrow({
+        where: {
+          id: input,
+        },
+      });
+      const reservations = await ctx.prisma.reservableReservation.findMany({
+        where: {
+          reservableId: input,
+        },
+      });
+
+      const reservationDates = reservations.map(
+        (reservation) => reservation.date
+      );
+
+      const startDate = new Date(`${reservable.date}T${reservable.startTime}`);
+      const endDate = new Date(`${reservable.date}T${reservable.endTime}`);
+      const timeSlots = generateTimeSlots(
+        startDate,
+        endDate,
+        reservable.timeInterval
+      );
+
+      return timeSlots.filter(
+        (timeSlot) =>
+          !reservationDates.find(
+            (reservation) => reservation.valueOf() === timeSlot.valueOf()
+          )
+      );
     }),
 });

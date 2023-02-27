@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { api } from "~/utils/api";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 interface CheckoutItemModalProps {
   item: Item;

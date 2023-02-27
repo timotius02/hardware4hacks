@@ -59,7 +59,9 @@ model User {
   role          Role      @default(USER)
 
   itemCart      ItemsInCarts[]
-  transations   Reservation[]
+  reservations   Reservation[]
+
+  reservableReservations ReservableReservation[]
 }
 
 enum Role {
@@ -99,7 +101,7 @@ model Item {
   hackathonId String
 
   userCarts   ItemsInCarts[]
-  transations Reservation[]
+  reservations Reservation[]
 }
 
 model Reservable {
@@ -113,6 +115,7 @@ model Reservable {
   timeInterval  Int       // 15, 30 or 60 minutes
   hackathon     Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
   hackathonId   String
+  reservations  ReservableReservation[]
 }
 
 model ItemsInCarts {
@@ -134,4 +137,14 @@ model Reservation {
   itemId      String
   quantity    Int
   isApproved  Boolean   @default(false)
+}
+
+model ReservableReservation {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  reservable    Reservable @relation(fields: [reservableId], references: [id], onDelete: Cascade)
+  reservableId  String
+  isApproved    Boolean   @default(false)
+  date          DateTime
 }

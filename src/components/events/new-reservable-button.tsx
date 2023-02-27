@@ -1,53 +1,59 @@
-import { type Reservable } from "@prisma/client";
-import { Dialog } from "@radix-ui/react-dialog";
-import { Edit2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { api } from "~/utils/api";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
+  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
-interface EditItemModalProps {
-  reservable: Reservable;
-}
-export default function EditReservableModal(props: EditItemModalProps) {
-  const { reservable } = props;
-  const [name, setName] = useState(reservable.name);
-  const [image, setImageLink] = useState(reservable.image);
-  const [imageAlt, setImageAlt] = useState(reservable.imageAlt);
-  const [date, setDate] = useState(reservable.date);
-  const [startTime, setStartTime] = useState(reservable.startTime);
-  const [endTime, setEndTime] = useState(reservable.endTime);
-  const [timeInterval, setTimeInterval] = useState(reservable.timeInterval);
+const defaults = {
+  name: "New Item",
+  image: "http://example.com/image.png",
+  imageAlt: "New Item Alt Text",
+  date: "",
+  startTime: "",
+  endTime: "",
+  timeInterval: 60,
+};
+
+export default function NewReservableButton() {
+  const [name, setName] = useState(defaults.name);
+  const [image, setImageLink] = useState(defaults.image);
+  const [imageAlt, setImageAlt] = useState(defaults.imageAlt);
+  const [date, setDate] = useState(defaults.date);
+  const [startTime, setStartTime] = useState(defaults.startTime);
+  const [endTime, setEndTime] = useState(defaults.endTime);
+  const [timeInterval, setTimeInterval] = useState(defaults.timeInterval);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const { eventId } = router.query;
+  let hackathonId: string;
 
   const utils = api.useContext();
 
-  const router = useRouter();
-  const { eventId } = router.query;
-
-  const editReservable = api.hackathon.editReservable.useMutation({
+  const addReservable = api.hackathon.addReservable.useMutation({
     // Optimistic Update
     onMutate: async (newReservable) => {
       await utils.hackathon.getAllReservables.cancel();
       const previousReservables =
         utils.hackathon.getAllReservables.getData(hackathonId);
-      const newReservables = previousReservables?.map((reservable) =>
-        reservable.id === newReservable.id
-          ? { ...newReservable, hackathonId }
-          : reservable
-      );
-      utils.hackathon.getAllReservables.setData(hackathonId, newReservables);
+      if (previousReservables) {
+        const newReservables = [
+          ...previousReservables,
+          { ...newReservable, id: "temp" },
+        ];
+        utils.hackathon.getAllReservables.setData(hackathonId, newReservables);
+      }
       return { previousReservables };
     },
     // On error, we roll back
@@ -64,80 +70,53 @@ export default function EditReservableModal(props: EditItemModalProps) {
       await utils.hackathon.getAllReservables.invalidate(hackathonId);
     },
   });
-
-  const removeReservable = api.hackathon.removeReservable.useMutation({
-    // Optimistic Update
-    onMutate: async (id) => {
-      await utils.hackathon.getAllReservables.cancel();
-      const previousReservables =
-        utils.hackathon.getAllReservables.getData(hackathonId);
-      const newReservables = previousReservables?.filter(
-        (reservables) => reservables.id !== id
-      );
-      utils.hackathon.getAllReservables.setData(hackathonId, newReservables);
-      return { previousReservables };
-    },
-    // On error, we roll back
-    onError: (err, newItem, context) => {
-      if (context) {
-        utils.hackathon.getAllReservables.setData(
-          hackathonId,
-          context.previousReservables
-        );
-      }
-    },
-    // Always refetch after error or success:
-    onSettled: async () => {
-      await utils.hackathon.getAllReservables.invalidate(hackathonId);
-    },
-  });
-
-  const handleSubmit = useCallback(() => {
-    editReservable.mutate({
-      id: reservable.id,
-      name,
-      image,
-      imageAlt,
-      date,
-      startTime,
-      endTime,
-      timeInterval,
-    });
-    setOpen(false);
-  }, [
-    reservable,
-    name,
-    image,
-    imageAlt,
-    date,
-    startTime,
-    endTime,
-    editReservable,
-    timeInterval,
-  ]);
-
-  const handleRemove = useCallback(() => {
-    removeReservable.mutate(reservable.id);
-    setOpen(false);
-  }, [reservable, removeReservable]);
 
   if (!eventId) {
-    return <div>404</div>;
+    throw new Error("event Id not provided");
   }
-
-  let hackathonId: string;
-
   if (Array.isArray(eventId)) {
     hackathonId = eventId.join("");
   } else {
     hackathonId = eventId;
   }
 
+  const handleSubmit = useCallback(() => {
+    addReservable.mutate({
+      name,
+      image,
+      imageAlt,
+      hackathonId,
+      date,
+      startTime,
+      endTime,
+      timeInterval,
+    });
+    console.log(startTime, endTime);
+    setOpen(false);
+    setName(defaults.name);
+    setImageLink(defaults.image);
+    setImageAlt(defaults.imageAlt);
+    setDate(defaults.date);
+    setStartTime(defaults.startTime);
+    setEndTime(defaults.endTime);
+  }, [
+    name,
+    image,
+    imageAlt,
+    hackathonId,
+    date,
+    startTime,
+    endTime,
+    addReservable,
+    timeInterval,
+  ]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className=" w-10 rounded-full p-0">
-          <Edit2 className="h-4 w-4" />
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          New Item
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -187,7 +166,6 @@ export default function EditReservableModal(props: EditItemModalProps) {
               className="col-span-3"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="date" className="text-right leading-normal">
               Date
@@ -257,11 +235,8 @@ export default function EditReservableModal(props: EditItemModalProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="destructive" onClick={handleRemove}>
-            Remove
-          </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Save
+            Add
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,8 +6,8 @@ import { createProxySSGHelpers } from "@trpc/react-query/ssg";
 import { appRouter } from "~/server/api/root";
 import superjson from "superjson";
 import { createInnerTRPCContext } from "~/server/api/trpc";
-import { Inventory } from "~/components/inventory";
-import { Reservations } from "~/components/reservations";
+import { Reservations } from "~/components/events/reservations";
+import { Inventory } from "~/components/events/inventory";
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getServerSession(context.req, context.res, authOptions);

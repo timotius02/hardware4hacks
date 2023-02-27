@@ -1,47 +1,47 @@
-import { Plus } from "lucide-react";
+import { type Item } from "@prisma/client";
+import { Dialog } from "@radix-ui/react-dialog";
+import { Edit2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { api } from "~/utils/api";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
-const defaults = {
-  name: "New Item",
-  image: "http://example.com/image.png",
-  imageAlt: "New Item Alt Text",
-  count: 0,
-};
-export default function NewItemButton() {
-  const [name, setName] = useState(defaults.name);
-  const [image, setImageLink] = useState(defaults.image);
-  const [imageAlt, setImageAlt] = useState(defaults.imageAlt);
-  const [count, setCount] = useState(defaults.count);
+interface EditItemModalProps {
+  item: Item;
+}
+export default function EditItemModal(props: EditItemModalProps) {
+  const { item } = props;
+  const [name, setName] = useState(item.name);
+  const [image, setImageLink] = useState(item.image);
+  const [imageAlt, setImageAlt] = useState(item.imageAlt);
+  const [count, setCount] = useState(item.count);
+
   const [open, setOpen] = useState(false);
-  const router = useRouter();
-  const { eventId } = router.query;
-  let hackathonId: string;
 
   const utils = api.useContext();
 
-  const addItem = api.hackathon.addItem.useMutation({
+  const router = useRouter();
+  const { eventId } = router.query;
+
+  const editItem = api.hackathon.editItem.useMutation({
     // Optimistic Update
     onMutate: async (newItem) => {
       await utils.hackathon.getAllItems.cancel();
       const previousItems = utils.hackathon.getAllItems.getData(hackathonId);
-      if (previousItems) {
-        const newItems = [...previousItems, { ...newItem, id: "temp" }];
-        utils.hackathon.getAllItems.setData(hackathonId, newItems);
-      }
+      const newItems = previousItems?.map((item) =>
+        item.id === newItem.id ? { ...newItem, hackathonId } : item
+      );
+      utils.hackathon.getAllItems.setData(hackathonId, newItems);
       return { previousItems };
     },
     // On error, we roll back
@@ -56,36 +56,60 @@ export default function NewItemButton() {
     },
   });
 
+  const removeItem = api.hackathon.removeItem.useMutation({
+    // Optimistic Update
+    onMutate: async (id) => {
+      await utils.hackathon.getAllItems.cancel();
+      const previousItems = utils.hackathon.getAllItems.getData(hackathonId);
+      const newItems = previousItems?.filter((item) => item.id !== id);
+      utils.hackathon.getAllItems.setData(hackathonId, newItems);
+      return { previousItems };
+    },
+    // On error, we roll back
+    onError: (err, newItem, context) => {
+      if (context) {
+        utils.hackathon.getAllItems.setData(hackathonId, context.previousItems);
+      }
+    },
+    // Always refetch after error or success:
+    onSettled: async () => {
+      await utils.hackathon.getAllItems.invalidate(hackathonId);
+    },
+  });
+
+  const handleSubmit = useCallback(() => {
+    editItem.mutate({
+      id: item.id,
+      name,
+      image,
+      imageAlt,
+      count,
+    });
+    setOpen(false);
+  }, [item, name, image, imageAlt, count, editItem]);
+
+  const handleRemove = useCallback(() => {
+    removeItem.mutate(item.id);
+    setOpen(false);
+  }, [item, removeItem]);
+
   if (!eventId) {
-    throw new Error("event Id not provided");
+    return <div>404</div>;
   }
+
+  let hackathonId: string;
+
   if (Array.isArray(eventId)) {
     hackathonId = eventId.join("");
   } else {
     hackathonId = eventId;
   }
 
-  const handleSubmit = useCallback(() => {
-    addItem.mutate({
-      name,
-      image,
-      imageAlt,
-      count,
-      hackathonId,
-    });
-    setOpen(false);
-    setName(defaults.name);
-    setImageLink(defaults.image);
-    setImageAlt(defaults.imageAlt);
-    setCount(defaults.count);
-  }, [name, image, imageAlt, count, hackathonId, addItem]);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New item
+        <Button variant="outline" className=" w-10 rounded-full p-0">
+          <Edit2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -151,8 +175,11 @@ export default function NewItemButton() {
           </div>
         </div>
         <DialogFooter>
+          <Button variant="destructive" onClick={handleRemove}>
+            Remove
+          </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Add
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>
