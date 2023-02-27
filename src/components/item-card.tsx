@@ -10,7 +10,6 @@ interface ItemCardProps {
 }
 export default function ItemCard(props: ItemCardProps) {
   const { item } = props;
-  const [checkoutCount, setCheckoutCount] = useState(0);
 
   return (
     <div key={item.id} className="group relative">
@@ -30,19 +29,6 @@ export default function ItemCard(props: ItemCardProps) {
           <p className="mt-1 text-lg font-medium text-gray-900">{item.count}</p>
         </div>
         <div className="flex items-center ">
-          {/* <Button
-            variant="outline"
-            onClick={() => setCheckoutCount(checkoutCount - 1)}
-          >
-            <Minus className=" h-4 w-4" />
-          </Button>
-          {checkoutCount}
-          <Button
-            variant="outline"
-            onClick={() => setCheckoutCount(checkoutCount + 1)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button> */}
           <CheckoutItemModal item={item} />
         </div>
       </div>

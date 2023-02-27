@@ -27,7 +27,7 @@ export default function Home(props: HomeProps) {
   return (
     <div className="mx-auto flex flex-col">
       <Head>
-        <title>Create T3 App</title>
+        <title>Hardware4Hacks</title>
         <meta name="description" content="Platform " />
         <link rel="icon" href="/favicon.ico" />
       </Head>

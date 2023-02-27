@@ -1,6 +1,7 @@
 import AvailableTable from "~/components/available-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import WaitingForApprovalTable from "~/components/waiting-for-approval";
+import { api } from "~/utils/api";
 
 export default function Dashboard() {
   return (

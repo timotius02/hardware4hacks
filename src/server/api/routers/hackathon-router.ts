@@ -11,6 +11,10 @@ export const hackathonRouter = createTRPCRouter({
     return ctx.prisma.hackathon.findMany();
   }),
 
+  getAllItemsGlobal: publicProcedure.query(({ ctx }) => {
+    return ctx.prisma.item.findMany();
+  }),
+
   getAllItems: publicProcedure.input(z.string()).query(({ ctx, input }) => {
     return ctx.prisma.item.findMany({
       where: {
@@ -300,4 +304,17 @@ export const hackathonRouter = createTRPCRouter({
         },
       });
     }),
+
+  getItemsCheckedOut: protectedProcedure.query(({ ctx }) => {
+    return ctx.prisma.reservation.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        isApproved: true,
+      },
+      include: {
+        item: true,
+        user: true,
+      },
+    });
+  }),
 });
