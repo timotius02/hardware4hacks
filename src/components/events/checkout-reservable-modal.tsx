@@ -14,8 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import TimePicker from "./time-picker";
 
 interface CheckoutReservableModalProps {
@@ -24,78 +22,36 @@ interface CheckoutReservableModalProps {
 export default function CheckoutReservableModal(
   props: CheckoutReservableModalProps
 ) {
-  const [checkoutCount, setCheckoutCount] = useState(1);
   const [open, setOpen] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const { reservable } = props;
   const router = useRouter();
-  const utils = api.useContext();
-  // const addItemToCart = api.hackathon.addItemToCart.useMutation({
-  //   // Optimistic Update
-  //   onMutate: async ({ itemId, quantity }) => {
-  //     await utils.hackathon.getItemsInCart.cancel();
-  //     const previousEntries = utils.hackathon.getItemsInCart.getData();
+  const addReservableToCart = api.hackathon.addReservableToCart.useMutation();
 
-  //     const newEntry = {
-  //       itemId,
-  //       userId: "test",
-  //       quantity,
-  //       addedOn: new Date(),
-  //       item,
-  //     };
-
-  //     let newEntries: typeof previousEntries;
-
-  //     if (!previousEntries) {
-  //       newEntries = [newEntry];
-  //     } else {
-  //       const index = previousEntries?.findIndex(
-  //         (entry) => entry.itemId === itemId
-  //       );
-
-  //       if (index === undefined) {
-  //         newEntries = previousEntries
-  //           ? [...previousEntries, newEntry]
-  //           : [newEntry];
-  //       } else {
-  //         newEntries = previousEntries.map((entry) =>
-  //           entry.itemId === itemId ? newEntry : entry
-  //         );
-  //       }
-  //     }
-  //     utils.hackathon.getItemsInCart.setData(undefined, newEntries);
-  //     return { previousEntries };
-  //   },
-  //   // On error, we roll back
-  //   onError: (err, newItem, context) => {
-  //     if (context) {
-  //       utils.hackathon.getItemsInCart.setData(
-  //         undefined,
-  //         context.previousEntries
-  //       );
-  //     }
-  //   },
-  //   // Always refetch after error or success:
-  //   onSettled: async () => {
-  //     await utils.hackathon.getItemsInCart.invalidate();
-  //   },
-  // });
+  const handleSelected = useCallback((date: Date) => {
+    setSelectedTime(date);
+  }, []);
 
   const handleCheckout = useCallback(async () => {
-    // addItemToCart.mutate({
-    //   itemId: item.id,
-    //   quantity: checkoutCount,
-    // });
+    if (selectedTime) {
+      addReservableToCart.mutate({
+        reservableId: reservable.id,
+        date: selectedTime,
+      });
 
-    await router.push("/checkout");
-  }, [router]);
+      await router.push("/checkout");
+    }
+  }, [addReservableToCart, reservable.id, router, selectedTime]);
 
   const addToCart = useCallback(() => {
-    setOpen(false);
-    // addItemToCart.mutate({
-    //   itemId: item.id,
-    //   quantity: checkoutCount,
-    // });
-  }, []);
+    if (selectedTime) {
+      setOpen(false);
+      addReservableToCart.mutate({
+        reservableId: reservable.id,
+        date: selectedTime,
+      });
+    }
+  }, [addReservableToCart, reservable.id, selectedTime]);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -130,20 +86,17 @@ export default function CheckoutReservableModal(
           </div> */}
           <TimePicker
             reservableId={reservable.id}
-            // date={reservable.date}
-            // startTime={reservable.startTime}
-            // endTime={reservable.endTime}
-            // interval={reservable.timeInterval}
+            onSelected={handleSelected}
           />
         </div>
-        {/* <DialogFooter>
+        <DialogFooter>
           <Button variant="outline" onClick={() => addToCart()}>
             Add to Cart
           </Button>
           <Button type="submit" onClick={() => void handleCheckout()}>
             Checkout
           </Button>
-        </DialogFooter> */}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

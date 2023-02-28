@@ -239,7 +239,7 @@ export const hackathonRouter = createTRPCRouter({
         userId,
       }));
 
-      await ctx.prisma.reservation.createMany({
+      await ctx.prisma.itemReservation.createMany({
         data: reservationEntries,
       });
 
@@ -256,7 +256,7 @@ export const hackathonRouter = createTRPCRouter({
 
   // get waiting items for user
   getItemsWaiting: protectedProcedure.query(({ ctx }) => {
-    return ctx.prisma.reservation.findMany({
+    return ctx.prisma.itemReservation.findMany({
       where: {
         userId: ctx.session.user.id,
         isApproved: false,
@@ -269,7 +269,7 @@ export const hackathonRouter = createTRPCRouter({
   }),
 
   getAllItemsWaiting: protectedProcedure.query(({ ctx }) => {
-    return ctx.prisma.reservation.findMany({
+    return ctx.prisma.itemReservation.findMany({
       where: {
         isApproved: false,
       },
@@ -282,7 +282,7 @@ export const hackathonRouter = createTRPCRouter({
   removeItemFromWaiting: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      const reservation = await ctx.prisma.reservation.delete({
+      const reservation = await ctx.prisma.itemReservation.delete({
         where: {
           id: input,
         },
@@ -304,7 +304,7 @@ export const hackathonRouter = createTRPCRouter({
   approveReservation: protectedProcedure
     .input(z.string())
     .mutation(({ ctx, input }) => {
-      return ctx.prisma.reservation.update({
+      return ctx.prisma.itemReservation.update({
         where: {
           id: input,
         },
@@ -315,7 +315,7 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   getItemsCheckedOut: protectedProcedure.query(({ ctx }) => {
-    return ctx.prisma.reservation.findMany({
+    return ctx.prisma.itemReservation.findMany({
       where: {
         userId: ctx.session.user.id,
         isApproved: true,
@@ -330,7 +330,7 @@ export const hackathonRouter = createTRPCRouter({
   returnItem: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      const reservation = await ctx.prisma.reservation.delete({
+      const reservation = await ctx.prisma.itemReservation.delete({
         where: {
           id: input,
         },
@@ -380,5 +380,107 @@ export const hackathonRouter = createTRPCRouter({
             (reservation) => reservation.valueOf() === timeSlot.valueOf()
           )
       );
+    }),
+
+  addReservableToCart: protectedProcedure
+    .input(
+      z.object({
+        reservableId: z.string(),
+        date: z.date(),
+      })
+    )
+    .mutation(({ ctx, input }) => {
+      return ctx.prisma.reservablesInCarts.upsert({
+        where: {
+          userId_reservableId: {
+            userId: ctx.session.user.id,
+            reservableId: input.reservableId,
+          },
+        },
+        update: {
+          date: input.date,
+        },
+        create: {
+          userId: ctx.session.user.id,
+          reservableId: input.reservableId,
+          date: input.date,
+        },
+      });
+    }),
+  getReservablesInCart: protectedProcedure.query(({ ctx }) => {
+    return ctx.prisma.reservablesInCarts.findMany({
+      where: {
+        userId: ctx.session.user.id,
+      },
+      include: {
+        reservable: true,
+      },
+    });
+  }),
+  removeReservableFromCart: protectedProcedure
+    .input(z.string())
+    .mutation(({ ctx, input }) => {
+      return ctx.prisma.reservablesInCarts.delete({
+        where: {
+          userId_reservableId: {
+            userId: ctx.session.user.id,
+            reservableId: input,
+          },
+        },
+      });
+    }),
+
+  checkoutReservable: protectedProcedure
+    .input(
+      z.array(
+        z.object({
+          reservableId: z.string(),
+          date: z.date(),
+        })
+      )
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const reservableIds = input.map((val) => val.reservableId);
+      // Check if there are any reservations in that time
+      const reservablesPromise = input.map((entry) => {
+        return ctx.prisma.reservableReservation.findFirst({
+          where: {
+            id: entry.reservableId,
+            date: entry.date,
+          },
+        });
+      });
+
+      const reservables = await Promise.all(reservablesPromise);
+
+      for (const reservable of reservables) {
+        if (reservable) {
+          throw new Error(
+            `Reservation time already taken: ${reservable.date.toLocaleString()}`
+          );
+          break;
+        }
+      }
+
+      // Create the reservations
+      const reservationEntries = input.map((entry) => ({
+        reservableId: entry.reservableId,
+        date: entry.date,
+        userId,
+      }));
+
+      await ctx.prisma.reservableReservation.createMany({
+        data: reservationEntries,
+      });
+
+      return ctx.prisma.reservablesInCarts.deleteMany({
+        where: {
+          userId,
+          reservableId: {
+            in: reservableIds,
+          },
+        },
+      });
     }),
 });

@@ -8,7 +8,7 @@ import superjson from "superjson";
 import { api } from "~/utils/api";
 import { Button } from "~/components/ui/button";
 import { useCallback } from "react";
-import { type Item } from "@prisma/client";
+import { Reservable, type Item } from "@prisma/client";
 import Link from "next/link";
 import { useToast } from "~/components/hooks/use-toast";
 import { Spinner } from "~/components/ui/spinner";
@@ -37,7 +37,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
 export default function Checkout() {
   const itemsInCart = api.hackathon.getItemsInCart.useQuery();
+  const reservablesInCart = api.hackathon.getReservablesInCart.useQuery();
   const entries = itemsInCart.data ?? [];
+  const reservableEntries = reservablesInCart.data ?? [];
   const utils = api.useContext();
   const { toast } = useToast();
 
@@ -67,7 +69,52 @@ export default function Checkout() {
     },
   });
 
+  const removeReservable = api.hackathon.removeReservableFromCart.useMutation({
+    // Optimistic Update
+    onMutate: async (id) => {
+      await utils.hackathon.getReservablesInCart.cancel();
+      const previousEntries = utils.hackathon.getReservablesInCart.getData();
+      const newEntries = previousEntries?.filter(
+        (entry) => entry.reservable.id !== id
+      );
+      utils.hackathon.getReservablesInCart.setData(undefined, newEntries);
+      return { previousEntries };
+    },
+    // On error, we roll back
+    onError: (err, newItem, context) => {
+      if (context) {
+        utils.hackathon.getReservablesInCart.setData(
+          undefined,
+          context.previousEntries
+        );
+      }
+    },
+    // Always refetch after error or success:
+    onSettled: async () => {
+      await utils.hackathon.getReservablesInCart.invalidate();
+    },
+  });
+
   const checkout = api.hackathon.checkoutItems.useMutation({
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        title: err.message,
+        description: "Please try again later",
+      });
+    },
+    onSettled: async () => {
+      toast({
+        description: "Check out success!",
+      });
+      await Promise.all([
+        utils.hackathon.getItemsInCart.invalidate(),
+        utils.hackathon.getAllItems.invalidate(),
+      ]);
+    },
+  });
+
+  const checkoutReservable = api.hackathon.checkoutReservable.useMutation({
     onError: (err) => {
       toast({
         variant: "destructive",
@@ -93,6 +140,13 @@ export default function Checkout() {
     [removeItem]
   );
 
+  const handleRemoveReservable = useCallback(
+    (reservable: Reservable) => {
+      removeReservable.mutate(reservable.id);
+    },
+    [removeReservable]
+  );
+
   const handleCheckout = useCallback(() => {
     if (itemsInCart.data) {
       const items = itemsInCart.data.map((entry) => ({
@@ -101,7 +155,17 @@ export default function Checkout() {
       }));
       checkout.mutate(items);
     }
-  }, [itemsInCart, checkout]);
+
+    if (reservablesInCart.data) {
+      const reservables = reservablesInCart.data.map(
+        ({ reservableId, date }) => ({
+          reservableId,
+          date,
+        })
+      );
+      checkoutReservable.mutate(reservables);
+    }
+  }, [itemsInCart.data, checkout, reservablesInCart.data, checkoutReservable]);
 
   return (
     <div className="h-full bg-white">
@@ -113,7 +177,7 @@ export default function Checkout() {
             </h2>
           </div>
 
-          {entries.length > 0 ? (
+          {entries.length > 0 || reservableEntries.length > 0 ? (
             <div className="mt-8">
               <div className="flow-root">
                 <ul role="list" className="-my-6 divide-y divide-gray-200">
@@ -129,8 +193,15 @@ export default function Checkout() {
 
                       <div className="ml-4 flex flex-1 flex-col">
                         <div>
-                          <div className="flex justify-between text-base font-medium text-gray-900">
-                            <h3>{entry.item.name}</h3>
+                          <div className="flex justify-between text-gray-900">
+                            <div>
+                              <h3 className="mb-1 text-base font-medium">
+                                {entry.item.name}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Qty {entry.quantity}
+                              </p>
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleRemove(entry.item)}
@@ -140,9 +211,43 @@ export default function Checkout() {
                             </button>
                           </div>
                         </div>
-                        <div className="flex flex-1 items-end justify-between text-sm">
-                          <p className="text-gray-500">Qty {entry.quantity}</p>
+                      </div>
+                    </li>
+                  ))}
+                  {reservableEntries.map((entry) => (
+                    <li key={entry.reservable.id} className="flex py-6">
+                      <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                        <img
+                          src={entry.reservable.image}
+                          alt={entry.reservable.imageAlt}
+                          className="h-full w-full object-cover object-center"
+                        />
+                      </div>
 
+                      <div className="ml-4 flex flex-1 flex-col">
+                        <div>
+                          <div className="flex justify-between text-base">
+                            <div>
+                              <h3 className="mb-1 text-base font-medium">
+                                {entry.reservable.name}
+                              </h3>
+
+                              <p className="text-gray-500">
+                                {`Reservation on ${entry.date.toLocaleString()}`}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveReservable(entry.reservable)
+                              }
+                              className="font-medium text-indigo-600 hover:text-indigo-500"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-1 items-end justify-between text-sm">
                           <div className="flex"></div>
                         </div>
                       </div>

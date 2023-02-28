@@ -1,27 +1,36 @@
-import generateTimeSlots from "~/lib/generate-time-slots";
+import { useState } from "react";
 import { api } from "~/utils/api";
 import { Button } from "../ui/button";
 
 interface timePickerProps {
-  // date: string;
-  // startTime: string;
-  // endTime: string;
-  // interval: number;
   reservableId: string;
+  onSelected: (date: Date) => void;
 }
 
 export default function TimePicker(props: timePickerProps) {
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const timeSlots =
     api.hackathon.getTimeSlots.useQuery(props.reservableId).data ?? [];
-  // const { date, startTime, endTime, interval } = props;
 
-  // const startDate = new Date(`${date}T${startTime}`);
-  // const endDate = new Date(`${date}T${endTime}`);
-  // const timeSlots = generateTimeSlots(startDate, endDate, interval);
+  const selectTime = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    date: Date
+  ) => {
+    event.preventDefault();
+    setSelectedTime(date);
+    props.onSelected(date);
+  };
+
   return (
     <div className="grid grid-cols-3 gap-4">
       {timeSlots.map((date) => (
-        <Button key={date.toString()}>
+        <Button
+          key={date.toString()}
+          onClick={(event) => selectTime(event, date)}
+          variant={
+            date.valueOf() === selectedTime?.valueOf() ? "default" : "outline"
+          }
+        >
           {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </Button>
       ))}

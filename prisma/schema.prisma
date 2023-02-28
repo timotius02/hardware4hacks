@@ -22,20 +22,20 @@ model Example {
 
 // Necessary for Next auth
 model Account {
-  id                          String  @id @default(cuid())
-  userId                      String
-  type                        String
-  provider                    String
-  providerAccountId           String
-  refresh_token               String? // @db.Text
-  refresh_token_expires_in    String?
-  access_token                String? // @db.Text
-  expires_at                  Int?
-  token_type                  String?
-  scope                       String?
-  id_token                    String? // @db.Text
-  session_state               String?
-  user                        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  refresh_token_expires_in String?
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -58,9 +58,10 @@ model User {
   sessions      Session[]
   role          Role      @default(USER)
 
-  itemCart      ItemsInCarts[]
-  reservations   Reservation[]
+  itemCart     ItemsInCarts[]
+  reservations ItemReservation[]
 
+  reservableCart         ReservablesInCarts[]
   reservableReservations ReservableReservation[]
 }
 
@@ -79,15 +80,15 @@ model VerificationToken {
 }
 
 model Hackathon {
-  id     String @id @default(cuid())
-  name   String
-  url    String
-  banner String
-  logo   String
-  date   String // TODO: Convert to DateTime
-  city   String
-  state  String
-  items   Item[]
+  id         String       @id @default(cuid())
+  name       String
+  url        String
+  banner     String
+  logo       String
+  date       String // TODO: Convert to DateTime
+  city       String
+  state      String
+  items      Item[]
   reservable Reservable[]
 }
 
@@ -100,51 +101,64 @@ model Item {
   hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
   hackathonId String
 
-  userCarts   ItemsInCarts[]
-  reservations Reservation[]
+  userCarts    ItemsInCarts[]
+  reservations ItemReservation[]
 }
 
 model Reservable {
-  id            String    @id @default(cuid())
-  name          String
-  image         String
-  imageAlt      String
-  date          String
-  startTime     String
-  endTime       String
-  timeInterval  Int       // 15, 30 or 60 minutes
-  hackathon     Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
-  hackathonId   String
-  reservations  ReservableReservation[]
+  id           String                  @id @default(cuid())
+  name         String
+  image        String
+  imageAlt     String
+  date         String
+  startTime    String
+  endTime      String
+  timeInterval Int // 15, 30 or 60 minutes
+  hackathon    Hackathon               @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  hackathonId  String
+  reservations ReservableReservation[]
+
+  userCarts ReservablesInCarts[]
 }
 
 model ItemsInCarts {
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  item        Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId      String
-  addedOn     DateTime @default(now())
-  quantity    Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId   String
+  addedOn  DateTime @default(now())
+  quantity Int
 
   @@id([userId, itemId])
 }
 
-model Reservation {
-  id          String    @id @default(cuid())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId      String
-  quantity    Int
-  isApproved  Boolean   @default(false)
+model ReservablesInCarts {
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  reservable   Reservable @relation(fields: [reservableId], references: [id], onDelete: Cascade)
+  reservableId String
+  addedOn      DateTime   @default(now())
+  date         DateTime
+
+  @@id([userId, reservableId])
+}
+
+model ItemReservation {
+  id         String  @id @default(cuid())
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  item       Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId     String
+  quantity   Int
+  isApproved Boolean @default(false)
 }
 
 model ReservableReservation {
-  id            String      @id @default(cuid())
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String
-  reservable    Reservable @relation(fields: [reservableId], references: [id], onDelete: Cascade)
-  reservableId  String
-  isApproved    Boolean   @default(false)
-  date          DateTime
+  id           String     @id @default(cuid())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  reservable   Reservable @relation(fields: [reservableId], references: [id], onDelete: Cascade)
+  reservableId String
+  isApproved   Boolean    @default(false)
+  date         DateTime
 }
